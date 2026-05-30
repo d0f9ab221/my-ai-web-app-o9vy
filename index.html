@@ -1,0 +1,1918 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherBuild - AI-Powered Web Builder</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f5f3ff',
+              100: '#ede9fe',
+              500: '#8b5cf6',
+              600: '#7c3aed',
+              700: '#6d28d9',
+              900: '#4c1d95',
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- JSZip for exporting projects -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  
+<style>
+/* --- CSS: /styles.css --- */
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.6);
+}
+
+/* Custom Animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
+  }
+}
+
+.glow-active {
+  animation: pulse-glow 2s infinite;
+}
+
+/* Smooth transitions */
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 200ms;
+}
+
+/* Code Editor Custom Styling */
+#code-editor {
+  outline: none;
+  border: none;
+  background-color: #020617;
+  color: #cbd5e1;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1.6;
+}
+
+/* Responsive Viewport Wrapper Transitions */
+#preview-wrapper {
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Chat Message Bubble Styling */
+.chat-bubble-user {
+  background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+  border-top-right-radius: 0px !important;
+}
+
+.chat-bubble-bot {
+  background: rgba(30, 41, 59, 0.8);
+  border-top-left-radius: 0px !important;
+}
+</style></head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased overflow-hidden h-screen flex flex-col">
+
+  <!-- Top Navigation Bar -->
+  <header class="h-16 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md flex items-center justify-between px-6 z-30 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+        <i data-lucide="sparkles" class="w-5 h-5 text-white animate-pulse"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">AetherBuild</h1>
+        <p class="text-xs text-slate-400 font-medium">Next-Gen AI Web Builder</p>
+      </div>
+    </div>
+
+    <!-- Project Selector & Actions -->
+    <div class="flex items-center gap-4">
+      <div class="relative">
+        <select id="project-selector" class="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-1.5 pr-8 focus:outline-none focus:ring-2 focus:ring-violet-500 appearance-none cursor-pointer min-w-[180px]">
+          <!-- Dynamic Projects -->
+        </select>
+        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none"></i>
+      </div>
+
+      <button id="btn-new-project" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 transition-all">
+        <i data-lucide="plus" class="w-4 h-4"></i> New Project
+      </button>
+    </div>
+
+    <!-- User Profile & API Status -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 bg-slate-800/50 px-3 py-1.5 rounded-full border border-slate-800">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping" id="api-status-ping"></span>
+        <span class="text-xs text-slate-300 font-medium" id="api-status-badge">Simulator Mode</span>
+      </div>
+      
+      <button id="btn-settings-toggle" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all">
+        <i data-lucide="settings" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-2 border-l border-slate-800 pl-4">
+        <img id="user-profile-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" alt="Profile" class="w-8 h-8 rounded-full object-cover border border-violet-500/50">
+        <div class="hidden md:block text-left">
+          <p class="text-xs font-semibold text-slate-200" id="user-profile-name">Alex Dev</p>
+          <p class="text-[10px] text-slate-400">Pro Creator</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Layout -->
+  <div class="flex flex-1 overflow-hidden">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="w-16 md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between py-4 shrink-0">
+      <div class="space-y-6 px-3">
+        <div class="space-y-1">
+          <button id="nav-builder" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium transition-all">
+            <i data-lucide="layout-template" class="w-5 h-5"></i>
+            <span class="hidden md:inline">AI Builder</span>
+          </button>
+          <button id="nav-explorer" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-all">
+            <i data-lucide="folder-tree" class="w-5 h-5"></i>
+            <span class="hidden md:inline">File Explorer</span>
+          </button>
+          <button id="nav-deploy" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-all">
+            <i data-lucide="globe" class="w-5 h-5"></i>
+            <span class="hidden md:inline">Deployments</span>
+          </button>
+          <button id="nav-settings" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-all">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+            <span class="hidden md:inline">Settings</span>
+          </button>
+        </div>
+
+        <!-- Project Summary Card -->
+        <div class="hidden md:block bg-slate-950/50 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Project</h3>
+            <button id="btn-reset-project" class="text-[10px] text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-0.5" title="Reset to original template">
+              <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Reset
+            </button>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-slate-200 truncate" id="summary-project-name">Portfolio Starter</p>
+            <p class="text-xs text-slate-500" id="summary-project-files">3 files • 1.2 KB</p>
+          </div>
+          <div class="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
+            <span>Status:</span>
+            <span class="text-emerald-400 font-medium flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Ready
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="px-4 text-center hidden md:block">
+        <p class="text-[10px] text-slate-500">AetherBuild v1.2.0</p>
+        <p class="text-[9px] text-slate-600 mt-1">Powered by OpenRouter & Pollinations</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area (Split View / Panels) -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden bg-slate-950">
+      
+      <!-- Left Panel: Chat / Code Editor / Deployments / Settings -->
+      <section id="left-panel" class="w-full md:w-[45%] border-r border-slate-800 flex flex-col h-1/2 md:h-full bg-slate-900/40">
+        
+        <!-- Tab Header -->
+        <div class="h-12 border-b border-slate-800 px-4 flex items-center justify-between bg-slate-900/80 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-violet-400" id="panel-title">AI Builder Chat</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="tab-chat-btn" class="px-2.5 py-1 rounded bg-slate-800 text-xs font-semibold text-white border border-slate-700">Chat</button>
+            <button id="tab-code-btn" class="px-2.5 py-1 rounded hover:bg-slate-800 text-xs font-semibold text-slate-400 hover:text-white">Code</button>
+          </div>
+        </div>
+
+        <!-- Tab Content: Chat -->
+        <div id="tab-chat-content" class="flex-1 flex flex-col overflow-hidden">
+          <!-- Chat Messages Container -->
+          <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+            <!-- Welcome Message -->
+            <div class="flex gap-3 max-w-[85%]">
+              <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shrink-0">
+                <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+              </div>
+              <div class="bg-slate-800/80 rounded-2xl rounded-tl-none p-3.5 border border-slate-700/50">
+                <p class="text-sm text-slate-200 leading-relaxed">Hello! I am your AI Web Builder assistant. I can generate complete, production-ready websites, landing pages, and web apps. Just tell me what you want to build!</p>
+                <p class="text-xs text-slate-400 mt-2">💡 <strong>No API Key?</strong> No problem! I have a built-in <strong>Smart Local AI Simulator</strong> that will instantly build pricing sections, dark mode toggles, contact forms, and more based on your prompt!</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <button class="quick-prompt bg-slate-900 hover:bg-slate-950 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 transition-all">🚀 Add a Pricing Section</button>
+                  <button class="quick-prompt bg-slate-900 hover:bg-slate-950 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 transition-all">🎨 Add a Dark Mode Toggle</button>
+                  <button class="quick-prompt bg-slate-900 hover:bg-slate-950 text-xs text-slate-300 px-2.5 py-1.5 rounded-lg border border-slate-800 transition-all">📊 Add a Contact Form</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input Area -->
+          <div class="p-4 border-t border-slate-800 bg-slate-900/60 shrink-0">
+            <form id="chat-form" class="relative">
+              <textarea id="chat-input" rows="2" placeholder="Ask AI to build or modify your website... (e.g. 'Add a dark mode toggle and a pricing section')" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-12 py-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 resize-none"></textarea>
+              <button type="submit" class="absolute right-3 bottom-3.5 p-2 bg-violet-600 hover:bg-violet-500 text-white rounded-lg transition-all shadow-lg shadow-violet-500/20">
+                <i data-lucide="send" class="w-4 h-4"></i>
+              </button>
+            </form>
+            <div class="flex items-center justify-between mt-2 text-[11px] text-slate-500">
+              <span>AI will reply in your language</span>
+              <span class="flex items-center gap-1"><i data-lucide="sparkles" class="w-3 h-3 text-violet-400"></i> Auto-generates images via Pollinations</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: Code Explorer & Editor -->
+        <div id="tab-code-content" class="hidden flex-1 flex flex-col overflow-hidden">
+          <div class="flex flex-1 overflow-hidden">
+            <!-- File Explorer Sidebar -->
+            <div class="w-1/3 border-r border-slate-800 bg-slate-950/40 flex flex-col">
+              <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400">Files</span>
+                <button id="btn-add-file" class="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white" title="Create New File">
+                  <i data-lucide="file-plus" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div id="file-list" class="flex-1 overflow-y-auto p-2 space-y-1">
+                <!-- Dynamic File List -->
+              </div>
+            </div>
+
+            <!-- Code Editor Area -->
+            <div class="flex-1 flex flex-col bg-slate-950">
+              <div class="h-9 border-b border-slate-800 px-3 flex items-center justify-between bg-slate-900/40">
+                <span class="text-xs font-mono text-slate-400" id="active-file-name">index.html</span>
+                <span class="text-[10px] text-slate-500 font-mono">Read & Write</span>
+              </div>
+              <textarea id="code-editor" class="flex-1 bg-slate-950 text-slate-300 font-mono text-xs p-4 focus:outline-none resize-none leading-relaxed scrollbar-thin" spellcheck="false"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: Deployments -->
+        <div id="tab-deploy-content" class="hidden flex-1 p-6 overflow-y-auto space-y-6">
+          <div class="space-y-2">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="globe" class="w-5 h-5 text-violet-400"></i> GitHub Pages Deployment
+            </h2>
+            <p class="text-sm text-slate-400">Deploy your generated website directly to GitHub Pages with a single click.</p>
+          </div>
+
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div class="space-y-2">
+              <label class="block text-xs font-semibold text-slate-300">GitHub Personal Access Token (classic or fine-grained)</label>
+              <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+              <p class="text-[11px] text-slate-500">Requires 'repo' scope to create repositories and commit files.</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-300">Repository Name</label>
+                <input type="text" id="github-repo" placeholder="my-awesome-site" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+              </div>
+              <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-300">Custom Domain (Optional)</label>
+                <input type="text" id="github-custom-domain" placeholder="example.com" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+              </div>
+            </div>
+
+            <button id="btn-deploy-github" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold py-2.5 rounded-lg shadow-lg shadow-violet-500/20 transition-all flex items-center justify-center gap-2">
+              <i data-lucide="upload-cloud" class="w-4 h-4"></i> Deploy to GitHub Pages
+            </button>
+          </div>
+
+          <!-- Deployment Status -->
+          <div id="deployment-status-card" class="hidden bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">Deployment Status</h3>
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400" id="deploy-status-icon">
+                <i data-lucide="loader" class="w-4 h-4 animate-spin"></i>
+              </div>
+              <div>
+                <p class="text-sm font-semibold text-slate-200" id="deploy-status-title">Deploying to GitHub...</p>
+                <p class="text-xs text-slate-400" id="deploy-status-desc">Creating repository and uploading files.</p>
+              </div>
+            </div>
+            <div class="pt-2 border-t border-slate-800/60 flex justify-between items-center">
+              <span class="text-xs text-slate-500">Live URL:</span>
+              <a href="#" id="deploy-live-url" target="_blank" class="text-xs text-violet-400 hover:underline flex items-center gap-1">Not deployed yet <i data-lucide="external-link" class="w-3 h-3"></i></a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Content: Settings -->
+        <div id="tab-settings-content" class="hidden flex-1 p-6 overflow-y-auto space-y-6">
+          <div class="space-y-2">
+            <h2 class="text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="sliders" class="w-5 h-5 text-violet-400"></i> Settings & API Configuration
+            </h2>
+            <p class="text-sm text-slate-400">Configure your OpenRouter API keys, models, and profile settings.</p>
+          </div>
+
+          <!-- OpenRouter API Slots -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <i data-lucide="key" class="w-4 h-4 text-violet-400"></i> OpenRouter API Keys
+            </h3>
+            
+            <div class="space-y-3">
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-400">Active API Key Slot</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <button class="api-slot-btn px-3 py-2 rounded-lg border border-violet-500 bg-violet-600/10 text-violet-400 text-xs font-semibold" data-slot="1">Slot 1 (Active)</button>
+                  <button class="api-slot-btn px-3 py-2 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold" data-slot="2">Slot 2</button>
+                  <button class="api-slot-btn px-3 py-2 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold" data-slot="3">Slot 3</button>
+                </div>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-400">API Key</label>
+                <input type="password" id="openrouter-key" placeholder="sk-or-v1-xxxxxxxxxxxxxxxxxxxx" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                <p class="text-[11px] text-slate-500">Leave blank to use the built-in <strong>Smart Local AI Simulator</strong> for instant testing!</p>
+              </div>
+
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-400">AI Model Selection</label>
+                <select id="openrouter-model" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+                  <option value="meta-llama/llama-3.3-70b-instruct">Meta: Llama 3.3 70B Instruct (Recommended)</option>
+                  <option value="anthropic/claude-3.5-sonnet">Anthropic: Claude 3.5 Sonnet</option>
+                  <option value="google/gemini-2.5-pro">Google: Gemini 2.5 Pro</option>
+                  <option value="deepseek/deepseek-chat">DeepSeek: DeepSeek V3</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Settings -->
+          <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-5 space-y-4">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <i data-lucide="user" class="w-4 h-4 text-violet-400"></i> Profile Customization
+            </h3>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-400">Display Name</label>
+                <input type="text" id="profile-name-input" value="Alex Dev" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+              </div>
+              <div class="space-y-1.5">
+                <label class="block text-xs font-semibold text-slate-400">Profile Image URL</label>
+                <input type="text" id="profile-img-input" value="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Panel: Live Preview -->
+      <section class="flex-1 flex flex-col h-1/2 md:h-full bg-slate-950">
+        
+        <!-- Preview Header / Toolbar -->
+        <div class="h-12 border-b border-slate-800 px-4 flex items-center justify-between bg-slate-900/40 shrink-0">
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Preview
+            </span>
+            <div class="h-4 w-px bg-slate-800"></div>
+            <!-- Responsive Viewport Toggles -->
+            <div class="flex items-center gap-1 bg-slate-900/80 p-0.5 rounded-lg border border-slate-800">
+              <button id="btn-view-desktop" class="p-1 rounded bg-slate-800 text-white hover:text-white" title="Desktop View">
+                <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+              </button>
+              <button id="btn-view-tablet" class="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800" title="Tablet View">
+                <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+              </button>
+              <button id="btn-view-mobile" class="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800" title="Mobile View">
+                <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Export & Action Buttons -->
+          <div class="flex items-center gap-2">
+            <button id="btn-refresh-preview" class="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition-all" title="Refresh Preview">
+              <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+            </button>
+            <button id="btn-export-zip" class="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg shadow-lg shadow-emerald-500/10 transition-all">
+              <i data-lucide="download" class="w-4 h-4"></i> Export ZIP
+            </button>
+          </div>
+        </div>
+
+        <!-- Preview Frame Container -->
+        <div class="flex-1 bg-slate-900/20 p-4 flex items-center justify-center overflow-auto relative">
+          <div id="preview-wrapper" class="w-full h-full transition-all duration-300 ease-in-out border border-slate-800 rounded-xl overflow-hidden bg-white shadow-2xl shrink-0">
+            <iframe id="preview-iframe" class="w-full h-full border-none bg-white"></iframe>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <!-- New Project Modal -->
+  <div id="new-project-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+          <i data-lucide="folder-plus" class="w-5 h-5 text-violet-400"></i> Create New Project
+        </h3>
+        <button id="btn-close-modal" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-slate-400">Project Name</label>
+          <input type="text" id="new-project-name" placeholder="My Awesome Web App" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+        </div>
+
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-slate-400">Template Starter</label>
+          <select id="new-project-template" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500">
+            <option value="portfolio">Creative Portfolio Starter</option>
+            <option value="saas">SaaS Landing Page Starter</option>
+            <option value="dashboard">Interactive Dashboard Starter</option>
+            <option value="blank">Blank Project (HTML/CSS/JS)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 pt-2">
+        <button id="btn-cancel-project" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold rounded-lg transition-all">Cancel</button>
+        <button id="btn-create-project-confirm" class="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-lg shadow-lg shadow-violet-500/20 transition-all">Create Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  
+  
+  
+<script type="text/javascript">
+/* --- Script: /data.js --- */
+window.AppTemplates = {
+  portfolio: {
+    name: "Creative Portfolio",
+    files: [
+      {
+        path: "index.html",
+        content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creative Portfolio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans">
+  <header class="max-w-5xl mx-auto px-6 py-8 flex justify-between items-center">
+    <div class="text-2xl font-bold bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">Alex.Dev</div>
+    <nav class="flex gap-6 text-sm font-medium text-slate-300">
+      <a href="#work" class="hover:text-white transition">Work</a>
+      <a href="#about" class="hover:text-white transition">About</a>
+      <a href="#contact" class="hover:text-white transition">Contact</a>
+    </nav>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-20 space-y-32">
+    <section class="text-center space-y-6">
+      <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight leading-none">
+        Building Digital <br>
+        <span class="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-indigo-400 bg-clip-text text-transparent">Masterpieces</span>
+      </h1>
+      <p class="text-lg text-slate-400 max-w-2xl mx-auto">I design and build high-performance web applications with stunning user interfaces and robust architectures.</p>
+      <div class="flex justify-center gap-4">
+        <a href="#work" class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-violet-500/20 transition">View My Work</a>
+        <a href="#contact" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-6 py-3 rounded-xl border border-slate-700 transition">Get in Touch</a>
+      </div>
+    </section>
+
+    <section id="work" class="space-y-12">
+      <div class="flex justify-between items-end">
+        <div>
+          <h2 class="text-3xl font-bold">Selected Projects</h2>
+          <p class="text-slate-400 mt-2">A curated showcase of my latest design and development work.</p>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-2 gap-8">
+        <div class="group space-y-4 cursor-pointer">
+          <div class="aspect-video rounded-2xl overflow-hidden bg-slate-800 border border-slate-700/50 relative">
+            <img src="https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=80" alt="Project 1" class="object-cover w-full h-full group-hover:scale-105 transition duration-500">
+          </div>
+          <div>
+            <h3 class="text-xl font-bold group-hover:text-violet-400 transition">Aether Dashboard</h3>
+            <p class="text-slate-400 text-sm mt-1">Next-gen analytics platform for modern SaaS companies.</p>
+          </div>
+        </div>
+        <div class="group space-y-4 cursor-pointer">
+          <div class="aspect-video rounded-2xl overflow-hidden bg-slate-800 border border-slate-700/50 relative">
+            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80" alt="Project 2" class="object-cover w-full h-full group-hover:scale-105 transition duration-500">
+          </div>
+          <div>
+            <h3 class="text-xl font-bold group-hover:text-violet-400 transition">Nova E-Commerce</h3>
+            <p class="text-slate-400 text-sm mt-1">A seamless, lightning-fast shopping experience built with headless tech.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-800 mt-32 py-12 text-center text-slate-500 text-sm">
+    <p>&copy; 2025 Alex.Dev. All rights reserved.</p>
+  </footer>
+</body>
+</html>`
+      },
+      {
+        path: "style.css",
+        content: `/* Custom Portfolio Styles */
+html {
+  scroll-behavior: smooth;
+}
+body {
+  background-color: #0f172a;
+}`
+      },
+      {
+        path: "script.js",
+        content: `// Portfolio Interactivity
+console.log("Portfolio Loaded Successfully!");`
+      }
+    ]
+  },
+  saas: {
+    name: "SaaS Landing Page",
+    files: [
+      {
+        path: "index.html",
+        content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SaaS Landing Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans">
+  <header class="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
+    <div class="text-xl font-bold flex items-center gap-2">
+      <span class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-black">S</span>
+      <span>SaaSify</span>
+    </div>
+    <nav class="hidden md:flex gap-8 text-sm font-medium text-slate-400">
+      <a href="#features" class="hover:text-white transition">Features</a>
+      <a href="#pricing" class="hover:text-white transition">Pricing</a>
+      <a href="#faq" class="hover:text-white transition">FAQ</a>
+    </nav>
+    <button class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">Get Started</button>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-20 space-y-32">
+    <section class="text-center space-y-8 max-w-3xl mx-auto">
+      <span class="bg-indigo-500/10 text-indigo-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-indigo-500/20">Now in Public Beta</span>
+      <h1 class="text-5xl md:text-6xl font-extrabold tracking-tight leading-tight">
+        Automate Your Workflow <br>
+        <span class="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Without the Hassle</span>
+      </h1>
+      <p class="text-lg text-slate-400">SaaSify connects all your favorite tools and automates complex workflows in minutes. No coding required.</p>
+      <div class="flex justify-center gap-4">
+        <button class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-indigo-500/20 transition">Start Free Trial</button>
+        <button class="bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold px-6 py-3 rounded-xl border border-slate-800 transition">Book a Demo</button>
+      </div>
+    </section>
+
+    <section id="features" class="grid md:grid-cols-3 gap-8">
+      <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl space-y-4">
+        <div class="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-400">
+          ⚡
+        </div>
+        <h3 class="text-xl font-bold">Lightning Fast</h3>
+        <p class="text-slate-400 text-sm">Built on next-generation architecture for maximum speed and reliability.</p>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl space-y-4">
+        <div class="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-400">
+          🔒
+        </div>
+        <h3 class="text-xl font-bold">Bank-Grade Security</h3>
+        <p class="text-slate-400 text-sm">Your data is encrypted end-to-end with the highest security standards.</p>
+      </div>
+      <div class="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl space-y-4">
+        <div class="w-12 h-12 rounded-xl bg-indigo-600/10 flex items-center justify-center text-indigo-400">
+          📊
+        </div>
+        <h3 class="text-xl font-bold">Advanced Analytics</h3>
+        <p class="text-slate-400 text-sm">Gain deep insights into your workflows with real-time analytics dashboards.</p>
+      </div>
+    </section>
+  </main>
+</body>
+</html>`
+      },
+      {
+        path: "style.css",
+        content: `/* SaaS Styles */
+body {
+  background-color: #020617;
+}`
+      },
+      {
+        path: "script.js",
+        content: `// SaaS Interactivity
+console.log("SaaS Landing Page Loaded!");`
+      }
+    ]
+  },
+  dashboard: {
+    name: "Interactive Dashboard",
+    files: [
+      {
+        path: "index.html",
+        content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans flex h-screen overflow-hidden">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col justify-between">
+    <div class="space-y-8">
+      <div class="text-xl font-bold flex items-center gap-2">
+        <span class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-black">D</span>
+        <span>Dashly</span>
+      </div>
+      <nav class="space-y-2">
+        <a href="#" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-emerald-600 text-white text-sm font-medium">Overview</a>
+        <a href="#" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium">Analytics</a>
+        <a href="#" class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium">Settings</a>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col overflow-hidden">
+    <header class="h-16 border-b border-slate-800 flex items-center justify-between px-8 bg-slate-900/50">
+      <h1 class="text-lg font-bold">Overview</h1>
+      <button class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition">Export Data</button>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-8 space-y-8">
+      <!-- Stats Grid -->
+      <div class="grid grid-cols-3 gap-6">
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+          <p class="text-sm text-slate-400">Total Revenue</p>
+          <p class="text-3xl font-bold mt-2">$45,231.89</p>
+          <p class="text-xs text-emerald-400 mt-1">+20.1% from last month</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+          <p class="text-sm text-slate-400">Subscriptions</p>
+          <p class="text-3xl font-bold mt-2">+2,350</p>
+          <p class="text-xs text-emerald-400 mt-1">+180.1% from last month</p>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl">
+          <p class="text-sm text-slate-400">Active Now</p>
+          <p class="text-3xl font-bold mt-2">+573</p>
+          <p class="text-xs text-emerald-400 mt-1">+201 since last hour</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>`
+      },
+      {
+        path: "style.css",
+        content: `/* Dashboard Styles */
+body {
+  background-color: #020617;
+}`
+      },
+      {
+        path: "script.js",
+        content: `// Dashboard Interactivity
+console.log("Dashboard Loaded!");`
+      }
+    ]
+  },
+  blank: {
+    name: "Blank Project",
+    files: [
+      {
+        path: "index.html",
+        content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blank Project</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans flex items-center justify-center h-screen">
+  <div class="text-center space-y-4">
+    <h1 class="text-4xl font-bold">Blank Project Starter</h1>
+    <p class="text-slate-400">Start building your custom web application here.</p>
+  </div>
+</body>
+</html>`
+      },
+      {
+        path: "style.css",
+        content: `/* Custom Styles */`
+      },
+      {
+        path: "script.js",
+        content: `// Custom Script`
+      }
+    ]
+  }
+};
+
+window.AppSystemPrompt = `You are an expert full-stack AI Web Builder. Your goal is to generate complete, production-ready, and visually stunning web applications based on the user's request.
+
+You MUST return your response in a structured JSON format inside a markdown code block. Do not include any other text outside the JSON block.
+
+JSON Schema:
+{
+  "summary": "A brief summary of the changes or features implemented, including generation details.",
+  "files": [
+    {
+      "path": "index.html",
+      "content": "..."
+    },
+    {
+      "path": "style.css",
+      "content": "..."
+    },
+    {
+      "path": "script.js",
+      "content": "..."
+    }
+  ]
+}
+
+CRITICAL REQUIREMENTS:
+1. Always generate complete, fully functional code. Never use placeholders or comments like "// TODO: implement logic".
+2. Use Tailwind CSS for styling. Ensure the UI is modern, clean, responsive, and visually stunning.
+3. If the user asks for images, use Pollinations API image URLs: https://image.pollinations.ai/prompt/{prompt}?width=800&height=600&nologo=true. Replace {prompt} with a descriptive, URL-encoded prompt.
+4. Always reply in the user's language inside the "summary" field.
+5. Ensure all files are properly linked (e.g., index.html links to style.css and script.js).`;
+
+/* --- Script: /utils.js --- */
+window.AppHelpers = {
+  // Web Audio API Synthesizer for premium sound effects
+  SoundEffects: {
+    ctx: null,
+    init() {
+      if (!this.ctx) {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    },
+    playClick() {
+      try {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.1);
+      } catch (e) {
+        console.warn('Audio context blocked or unsupported:', e);
+      }
+    },
+    playSuccess() {
+      try {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(400, this.ctx.currentTime + 0.08);
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime + 0.16);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.3);
+      } catch (e) {
+        console.warn('Audio context blocked or unsupported:', e);
+      }
+    },
+    playError() {
+      try {
+        this.init();
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(80, this.ctx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.25);
+      } catch (e) {
+        console.warn('Audio context blocked or unsupported:', e);
+      }
+    }
+  },
+
+  // ZIP Exporter using JSZip
+  async exportToZip(projectName, files) {
+    const zip = new JSZip();
+    files.forEach(file => {
+      zip.file(file.path, file.content);
+    });
+    const content = await zip.generateAsync({ type: "blob" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(content);
+    link.download = `${projectName.toLowerCase().replace(/\s+/g, '-')}.zip`;
+    link.click();
+  },
+
+  // GitHub Pages Deployment Helper
+  async deployToGitHub(token, repoName, files, customDomain = "") {
+    const headers = {
+      'Authorization': `token ${token}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    };
+
+    // 1. Get user details
+    const userRes = await fetch('https://api.github.com/user', { headers });
+    if (!userRes.ok) throw new Error('Invalid GitHub Token');
+    const userData = await userRes.json();
+    const username = userData.login;
+
+    // 2. Create Repository (if not exists)
+    const repoRes = await fetch(`https://api.github.com/repos/${username}/${repoName}`, { headers });
+    if (repoRes.status === 404) {
+      const createRes = await fetch('https://api.github.com/user/repos', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name: repoName, auto_init: true, private: false })
+      });
+      if (!createRes.ok) throw new Error('Failed to create repository');
+    }
+
+    // 3. Commit files
+    for (const file of files) {
+      const filePath = file.path;
+      const fileUrl = `https://api.github.com/repos/${username}/${repoName}/contents/${filePath}`;
+      
+      // Check if file exists to get SHA
+      let sha = null;
+      const checkRes = await fetch(fileUrl, { headers });
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        sha = checkData.sha;
+      }
+
+      const commitBody = {
+        message: `Deploy ${filePath} via AetherBuild`,
+        content: btoa(unescape(encodeURIComponent(file.content))),
+        branch: 'main'
+      };
+      if (sha) commitBody.sha = sha;
+
+      const commitRes = await fetch(fileUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(commitBody)
+      });
+      if (!commitRes.ok) throw new Error(`Failed to commit ${filePath}`);
+    }
+
+    // 4. Enable GitHub Pages
+    const pagesRes = await fetch(`https://api.github.com/repos/${username}/${repoName}/pages`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ source: { branch: 'main', path: '/' } })
+    });
+
+    // 5. Custom Domain (if provided)
+    if (customDomain) {
+      await fetch(`https://api.github.com/repos/${username}/${repoName}/pages`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ cname: customDomain })
+      });
+    }
+
+    return `https://${username}.github.io/${repoName}/`;
+  },
+
+  // Smart Local AI Simulator (Fallback Mode)
+  simulateAIGeneration(prompt, currentFiles) {
+    const lower = prompt.toLowerCase();
+    const updatedFiles = JSON.parse(JSON.stringify(currentFiles));
+    let summary = "";
+
+    let htmlFile = updatedFiles.find(f => f.path === 'index.html');
+    let cssFile = updatedFiles.find(f => f.path === 'style.css');
+    let jsFile = updatedFiles.find(f => f.path === 'script.js');
+
+    if (!htmlFile) {
+      htmlFile = { path: 'index.html', content: '<html><body></body></html>' };
+      updatedFiles.push(htmlFile);
+    }
+    if (!cssFile) {
+      cssFile = { path: 'style.css', content: '' };
+      updatedFiles.push(cssFile);
+    }
+    if (!jsFile) {
+      jsFile = { path: 'script.js', content: '' };
+      updatedFiles.push(jsFile);
+    }
+
+    if (lower.includes('pricing') || lower.includes('plan') || lower.includes('cost')) {
+      summary = "Added a premium, responsive SaaS Pricing Section with interactive monthly/yearly billing toggles and hover animations.";
+      const pricingSection = `
+    <!-- Dynamic Pricing Section -->
+    <section id="pricing" class="py-20 bg-slate-900/40 border-y border-slate-800">
+      <div class="max-w-5xl mx-auto px-6">
+        <div class="text-center max-w-2xl mx-auto mb-16">
+          <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white">Simple, Transparent Plans</h2>
+          <p class="text-slate-400 mt-4">Choose the perfect plan for your creative or business needs. No hidden fees.</p>
+        </div>
+        <div class="grid md:grid-cols-3 gap-8">
+          <!-- Starter Plan -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between hover:border-violet-500/50 transition-all duration-300">
+            <div>
+              <h3 class="text-lg font-bold text-slate-200">Starter</h3>
+              <p class="text-slate-400 text-xs mt-1">Perfect for hobbyists and individuals.</p>
+              <div class="mt-6 flex items-baseline gap-1">
+                <span class="text-4xl font-extrabold text-white">$0</span>
+                <span class="text-slate-500 text-sm">/month</span>
+              </div>
+              <ul class="mt-8 space-y-4 text-sm text-slate-300">
+                <li class="flex items-center gap-2">✓ 1 Active Project</li>
+                <li class="flex items-center gap-2">✓ Basic Templates</li>
+                <li class="flex items-center gap-2 text-slate-500">✗ Premium AI Generation</li>
+              </ul>
+            </div>
+            <button class="mt-8 w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 rounded-xl transition">Get Started</button>
+          </div>
+          <!-- Pro Plan -->
+          <div class="bg-slate-950 border-2 border-violet-500 rounded-2xl p-8 flex flex-col justify-between relative shadow-xl shadow-violet-500/10 hover:scale-[1.02] transition-all duration-300">
+            <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-violet-600 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">Most Popular</span>
+            <div>
+              <h3 class="text-lg font-bold text-slate-200">Pro Creator</h3>
+              <p class="text-slate-400 text-xs mt-1">For professional developers and designers.</p>
+              <div class="mt-6 flex items-baseline gap-1">
+                <span class="text-4xl font-extrabold text-white">$19</span>
+                <span class="text-slate-500 text-sm">/month</span>
+              </div>
+              <ul class="mt-8 space-y-4 text-sm text-slate-300">
+                <li class="flex items-center gap-2">✓ Unlimited Projects</li>
+                <li class="flex items-center gap-2">✓ Full AI Generation</li>
+                <li class="flex items-center gap-2">✓ Custom Domain Deployments</li>
+              </ul>
+            </div>
+            <button class="mt-8 w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold py-2.5 rounded-xl transition shadow-lg shadow-violet-500/20">Upgrade to Pro</button>
+          </div>
+          <!-- Enterprise Plan -->
+          <div class="bg-slate-950 border border-slate-800 rounded-2xl p-8 flex flex-col justify-between hover:border-violet-500/50 transition-all duration-300">
+            <div>
+              <h3 class="text-lg font-bold text-slate-200">Enterprise</h3>
+              <p class="text-slate-400 text-xs mt-1">For scaling teams and agencies.</p>
+              <div class="mt-6 flex items-baseline gap-1">
+                <span class="text-4xl font-extrabold text-white">$49</span>
+                <span class="text-slate-500 text-sm">/month</span>
+              </div>
+              <ul class="mt-8 space-y-4 text-sm text-slate-300">
+                <li class="flex items-center gap-2">✓ Dedicated Support</li>
+                <li class="flex items-center gap-2">✓ Advanced Analytics</li>
+                <li class="flex items-center gap-2">✓ Custom Integrations</li>
+              </ul>
+            </div>
+            <button class="mt-8 w-full bg-slate-800 hover:bg-slate-700 text-white font-semibold py-2.5 rounded-xl transition">Contact Sales</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    `;
+      if (htmlFile.content.includes('</main>')) {
+        htmlFile.content = htmlFile.content.replace('</main>', `${pricingSection}</main>`);
+      } else if (htmlFile.content.includes('</body>')) {
+        htmlFile.content = htmlFile.content.replace('</body>', `${pricingSection}</body>`);
+      } else {
+        htmlFile.content += pricingSection;
+      }
+    } else if (lower.includes('dark') || lower.includes('theme') || lower.includes('toggle')) {
+      summary = "Injected a fully functional Dark/Light Mode Toggle button in the header, along with responsive CSS variables and a local storage state handler.";
+      const toggleBtn = `
+    <!-- Theme Toggle Button -->
+    <button id="theme-toggle-btn" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-all flex items-center gap-2 text-xs font-semibold">
+      <span class="theme-icon">☀️</span> Toggle Theme
+    </button>
+    `;
+      if (htmlFile.content.includes('</header>')) {
+        htmlFile.content = htmlFile.content.replace('</header>', `${toggleBtn}</header>`);
+      } else if (htmlFile.content.includes('</nav>')) {
+        htmlFile.content = htmlFile.content.replace('</nav>', `${toggleBtn}</nav>`);
+      } else {
+        htmlFile.content = htmlFile.content.replace('<body>', `<body>${toggleBtn}`);
+      }
+
+      jsFile.content += `
+// Dynamic Theme Toggle Logic
+const themeBtn = document.getElementById('theme-toggle-btn');
+if (themeBtn) {
+  themeBtn.addEventListener('click', () => {
+    document.body.classList.toggle('light-theme');
+    const isLight = document.body.classList.contains('light-theme');
+    document.body.style.backgroundColor = isLight ? '#f8fafc' : '#0f172a';
+    document.body.style.color = isLight ? '#0f172a' : '#f8fafc';
+    themeBtn.querySelector('.theme-icon').textContent = isLight ? '🌙' : '☀️';
+    console.log('Theme toggled to:', isLight ? 'Light' : 'Dark');
+  });
+}`;
+    } else if (lower.includes('contact') || lower.includes('form') || lower.includes('email')) {
+      summary = "Appended a modern, interactive Contact Form with real-time input validation, success feedback, and a premium glassmorphic layout.";
+      const contactSection = `
+    <!-- Dynamic Contact Form Section -->
+    <section id="contact" class="py-20 bg-slate-950 border-t border-slate-800">
+      <div class="max-w-md mx-auto px-6 bg-slate-900/50 border border-slate-800 rounded-2xl p-8 shadow-xl">
+        <h2 class="text-2xl font-bold text-white text-center">Get in Touch</h2>
+        <p class="text-slate-400 text-sm text-center mt-2">Send us a message and we will get back to you shortly.</p>
+        <form id="simulated-contact-form" class="mt-6 space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Name</label>
+            <input type="text" required placeholder="John Doe" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500 mt-1">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Email Address</label>
+            <input type="email" required placeholder="john@example.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500 mt-1">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Message</label>
+            <textarea required rows="4" placeholder="Tell us about your project..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500 mt-1 resize-none"></textarea>
+          </div>
+          <button type="submit" class="w-full bg-violet-600 hover:bg-violet-500 text-white font-semibold py-3 rounded-xl shadow-lg shadow-violet-500/20 transition-all">Send Message</button>
+        </form>
+        <div id="contact-success-msg" class="hidden mt-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs text-center rounded-xl">
+          ✓ Message sent successfully! We will reply soon.
+        </div>
+      </div>
+    </section>
+    `;
+      if (htmlFile.content.includes('</main>')) {
+        htmlFile.content = htmlFile.content.replace('</main>', `${contactSection}</main>`);
+      } else if (htmlFile.content.includes('</body>')) {
+        htmlFile.content = htmlFile.content.replace('</body>', `${contactSection}</body>`);
+      } else {
+        htmlFile.content += contactSection;
+      }
+
+      jsFile.content += `
+// Dynamic Contact Form Handler
+const contactForm = document.getElementById('simulated-contact-form');
+const successMsg = document.getElementById('contact-success-msg');
+if (contactForm && successMsg) {
+  contactForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    contactForm.classList.add('hidden');
+    successMsg.classList.remove('hidden');
+    console.log('Contact form submitted successfully!');
+  });
+}`;
+    } else {
+      // Generic Custom Section
+      summary = `Generated a custom section for: "${prompt}" with responsive layout, custom typography, and a beautiful Unsplash visual.`;
+      const customSection = `
+    <!-- Dynamic Custom Section: ${prompt} -->
+    <section class="py-20 bg-slate-900/20 border-t border-slate-800">
+      <div class="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-12 items-center">
+        <div class="space-y-6">
+          <span class="bg-violet-500/10 text-violet-400 text-xs font-semibold px-3 py-1.5 rounded-full border border-violet-500/20">New Feature</span>
+          <h2 class="text-3xl md:text-4xl font-bold text-white capitalize">${prompt}</h2>
+          <p class="text-slate-400 leading-relaxed">This custom section was dynamically generated by AetherBuild based on your request. It is fully responsive, styled with Tailwind CSS, and ready for production.</p>
+          <div class="flex gap-4">
+            <button class="bg-violet-600 hover:bg-violet-500 text-white font-semibold px-5 py-2.5 rounded-xl transition">Explore Feature</button>
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-800 shadow-2xl">
+          <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&auto=format&fit=crop&q=80" alt="Custom Visual" class="w-full h-full object-cover">
+        </div>
+      </div>
+    </section>
+    `;
+      if (htmlFile.content.includes('</main>')) {
+        htmlFile.content = htmlFile.content.replace('</main>', `${customSection}</main>`);
+      } else if (htmlFile.content.includes('</body>')) {
+        htmlFile.content = htmlFile.content.replace('</body>', `${customSection}</body>`);
+      } else {
+        htmlFile.content += customSection;
+      }
+    }
+
+    return {
+      summary: `[Simulator Mode] ${summary}`,
+      files: updatedFiles
+    };
+  },
+
+  // OpenRouter API Client
+  async generateWebCode(apiKey, model, prompt, currentFiles) {
+    // If no API key is provided, automatically fall back to the Smart Local AI Simulator
+    if (!apiKey || apiKey.trim() === "") {
+      return this.simulateAIGeneration(prompt, currentFiles);
+    }
+
+    const systemPrompt = window.AppSystemPrompt;
+    const userPrompt = `Current Project Files:
+${JSON.stringify(currentFiles, null, 2)}
+
+User Request:
+${prompt}`;
+
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin,
+        'X-Title': 'AetherBuild'
+      },
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        response_format: { type: "json_object" }
+      })
+    });
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error?.message || 'Failed to generate code from OpenRouter');
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    
+    // Parse JSON safely
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      // Fallback parser if AI didn't return perfect JSON
+      const jsonMatch = content.match(/\{[\s\S]*\}//);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      throw new Error('AI response was not in the correct JSON format.');
+    }
+  }
+};
+
+/* --- Script: /script.js --- */
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize Lucide Icons
+  lucide.createIcons();
+
+  // State Management
+  const state = {
+    projects: [
+      {
+        id: 'proj-1',
+        name: 'Portfolio Starter',
+        files: JSON.parse(JSON.stringify(window.AppTemplates.portfolio.files))
+      },
+      {
+        id: 'proj-2',
+        name: 'SaaS Landing Page',
+        files: JSON.parse(JSON.stringify(window.AppTemplates.saas.files))
+      }
+    ],
+    activeProjectId: 'proj-1',
+    activeFilePath: 'index.html',
+    activeTab: 'chat', // chat, code, deploy, settings
+    isGenerating: false,
+    settings: {
+      apiKeys: {
+        slot1: localStorage.getItem('openrouter_key_1') || '',
+        slot2: localStorage.getItem('openrouter_key_2') || '',
+        slot3: localStorage.getItem('openrouter_key_3') || ''
+      },
+      activeSlot: 'slot1',
+      model: localStorage.getItem('openrouter_model') || 'meta-llama/llama-3.3-70b-instruct',
+      githubToken: localStorage.getItem('github_token') || '',
+      githubRepo: localStorage.getItem('github_repo') || 'my-aether-site',
+      githubCustomDomain: localStorage.getItem('github_custom_domain') || '',
+      profileName: localStorage.getItem('profile_name') || 'Alex Dev',
+      profileImg: localStorage.getItem('profile_img') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'
+    }
+  };
+
+  // DOM Elements
+  const projectSelector = document.getElementById('project-selector');
+  const btnNewProject = document.getElementById('btn-new-project');
+  const btnSettingsToggle = document.getElementById('btn-settings-toggle');
+  const userProfileImg = document.getElementById('user-profile-img');
+  const userProfileName = document.getElementById('user-profile-name');
+  const summaryProjectName = document.getElementById('summary-project-name');
+  const summaryProjectFiles = document.getElementById('summary-project-files');
+  const btnResetProject = document.getElementById('btn-reset-project');
+  const apiStatusBadge = document.getElementById('api-status-badge');
+  const apiStatusPing = document.getElementById('api-status-ping');
+  
+  // Navigation Buttons
+  const navBuilder = document.getElementById('nav-builder');
+  const navExplorer = document.getElementById('nav-explorer');
+  const navDeploy = document.getElementById('nav-deploy');
+  const navSettings = document.getElementById('nav-settings');
+
+  // Tab Buttons
+  const tabChatBtn = document.getElementById('tab-chat-btn');
+  const tabCodeBtn = document.getElementById('tab-code-btn');
+
+  // Tab Contents
+  const tabChatContent = document.getElementById('tab-chat-content');
+  const tabCodeContent = document.getElementById('tab-code-content');
+  const tabDeployContent = document.getElementById('tab-deploy-content');
+  const tabSettingsContent = document.getElementById('tab-settings-content');
+  const panelTitle = document.getElementById('panel-title');
+
+  // Chat Elements
+  const chatMessages = document.getElementById('chat-messages');
+  const chatForm = document.getElementById('chat-form');
+  const chatInput = document.getElementById('chat-input');
+
+  // Code Editor Elements
+  const fileList = document.getElementById('file-list');
+  const codeEditor = document.getElementById('code-editor');
+  const activeFileName = document.getElementById('active-file-name');
+  const btnAddFile = document.getElementById('btn-add-file');
+
+  // Preview Elements
+  const previewIframe = document.getElementById('preview-iframe');
+  const previewWrapper = document.getElementById('preview-wrapper');
+  const btnViewDesktop = document.getElementById('btn-view-desktop');
+  const btnViewTablet = document.getElementById('btn-view-tablet');
+  const btnViewMobile = document.getElementById('btn-view-mobile');
+  const btnRefreshPreview = document.getElementById('btn-refresh-preview');
+  const btnExportZip = document.getElementById('btn-export-zip');
+
+  // Deploy Elements
+  const githubTokenInput = document.getElementById('github-token');
+  const githubRepoInput = document.getElementById('github-repo');
+  const githubCustomDomainInput = document.getElementById('github-custom-domain');
+  const btnDeployGithub = document.getElementById('btn-deploy-github');
+  const deploymentStatusCard = document.getElementById('deployment-status-card');
+  const deployStatusIcon = document.getElementById('deploy-status-icon');
+  const deployStatusTitle = document.getElementById('deploy-status-title');
+  const deployStatusDesc = document.getElementById('deploy-status-desc');
+  const deployLiveUrl = document.getElementById('deploy-live-url');
+
+  // Settings Elements
+  const openrouterKeyInput = document.getElementById('openrouter-key');
+  const openrouterModelSelect = document.getElementById('openrouter-model');
+  const profileNameInput = document.getElementById('profile-name-input');
+  const profileImgInput = document.getElementById('profile-img-input');
+  const apiSlotBtns = document.querySelectorAll('.api-slot-btn');
+
+  // Modal Elements
+  const newProjectModal = document.getElementById('new-project-modal');
+  const btnCloseModal = document.getElementById('btn-close-modal');
+  const btnCancelProject = document.getElementById('btn-cancel-project');
+  const btnCreateProjectConfirm = document.getElementById('btn-create-project-confirm');
+  const newProjectNameInput = document.getElementById('new-project-name');
+  const newProjectTemplateSelect = document.getElementById('new-project-template');
+
+  // Helper: Get Active Project
+  function getActiveProject() {
+    return state.projects.find(p => p.id === state.activeProjectId);
+  }
+
+  // Helper: Get Active File
+  function getActiveFile() {
+    const proj = getActiveProject();
+    return proj ? proj.files.find(f => f.path === state.activeFilePath) : null;
+  }
+
+  // Update API Status Badge
+  function updateAPIStatusBadge() {
+    const activeKey = state.settings.apiKeys[state.settings.activeSlot];
+    if (activeKey && activeKey.trim() !== "") {
+      apiStatusBadge.textContent = "OpenRouter Connected";
+      apiStatusBadge.className = "text-xs text-emerald-400 font-medium";
+      apiStatusPing.className = "w-2 h-2 rounded-full bg-emerald-500 animate-ping";
+    } else {
+      apiStatusBadge.textContent = "Simulator Mode";
+      apiStatusBadge.className = "text-xs text-amber-400 font-medium";
+      apiStatusPing.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+    }
+  }
+
+  // Render Project Selector
+  function renderProjectSelector() {
+    projectSelector.innerHTML = '';
+    state.projects.forEach(proj => {
+      const opt = document.createElement('option');
+      opt.value = proj.id;
+      opt.textContent = proj.name;
+      if (proj.id === state.activeProjectId) opt.selected = true;
+      projectSelector.appendChild(opt);
+    });
+    
+    const activeProj = getActiveProject();
+    if (activeProj) {
+      summaryProjectName.textContent = activeProj.name;
+      summaryProjectFiles.textContent = `${activeProj.files.length} files`;
+    }
+    updateAPIStatusBadge();
+  }
+
+  // Render File List
+  function renderFileList() {
+    fileList.innerHTML = '';
+    const proj = getActiveProject();
+    if (!proj) return;
+
+    proj.files.forEach(file => {
+      const container = document.createElement('div');
+      container.className = `group flex items-center justify-between p-1 rounded transition-all ${file.path === state.activeFilePath ? 'bg-violet-600/20 border border-violet-500/30' : 'hover:bg-slate-800/50'}`;
+
+      const btn = document.createElement('button');
+      btn.className = "flex-1 flex items-center gap-1.5 px-2 py-1 text-xs font-mono text-left text-slate-300 hover:text-white transition-all";
+      
+      let icon = 'file-code';
+      if (file.path.endsWith('.html')) icon = 'file-type-2';
+      if (file.path.endsWith('.css')) icon = 'file-style';
+      
+      btn.innerHTML = `
+        <span class="flex items-center gap-1.5 truncate">
+          <i data-lucide="${icon}" class="w-3.5 h-3.5 shrink-0"></i>
+          <span class="truncate">${file.path}</span>
+        </span>
+      `;
+      
+      btn.addEventListener('click', () => {
+        window.AppHelpers.SoundEffects.playClick();
+        state.activeFilePath = file.path;
+        renderFileList();
+        renderCodeEditor();
+      });
+
+      container.appendChild(btn);
+
+      // Add Delete Button (except for index.html)
+      if (file.path !== 'index.html') {
+        const delBtn = document.createElement('button');
+        delBtn.className = "p-1 text-slate-500 hover:text-rose-400 rounded opacity-0 group-hover:opacity-100 transition-all";
+        delBtn.innerHTML = '<i data-lucide="trash-2" class="w-3.5 h-3.5"></i>';
+        delBtn.title = "Delete File";
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.AppHelpers.SoundEffects.playError();
+          if (confirm(`Are you sure you want to delete ${file.path}?`)) {
+            proj.files = proj.files.filter(f => f.path !== file.path);
+            if (state.activeFilePath === file.path) {
+              state.activeFilePath = 'index.html';
+            }
+            renderFileList();
+            renderCodeEditor();
+            updateLivePreview();
+          }
+        });
+        container.appendChild(delBtn);
+      }
+      
+      fileList.appendChild(container);
+    });
+    lucide.createIcons();
+  }
+
+  // Render Code Editor
+  function renderCodeEditor() {
+    const file = getActiveFile();
+    if (file) {
+      codeEditor.value = file.content;
+      activeFileName.textContent = file.path;
+    } else {
+      codeEditor.value = '';
+      activeFileName.textContent = 'No file selected';
+    }
+  }
+
+  // Compile & Update Live Preview
+  function updateLivePreview() {
+    const proj = getActiveProject();
+    if (!proj) return;
+
+    const htmlFile = proj.files.find(f => f.path === 'index.html');
+    const cssFile = proj.files.find(f => f.path === 'style.css');
+    const jsFile = proj.files.find(f => f.path === 'script.js');
+
+    let htmlContent = htmlFile ? htmlFile.content : '';
+    const cssContent = cssFile ? cssFile.content : '';
+    const jsContent = jsFile ? jsFile.content : '';
+
+    // Inject CSS
+    if (cssContent) {
+      htmlContent = htmlContent.replace('</head>', `<style>${cssContent}</style></head>`);
+    }
+    // Inject JS
+    if (jsContent) {
+      htmlContent = htmlContent.replace('</body>', `<script>${jsContent}</script></body>`);
+    }
+
+    previewIframe.srcdoc = htmlContent;
+  }
+
+  // Switch Navigation Tabs
+  function switchTab(tabName) {
+    state.activeTab = tabName;
+    
+    // Reset active classes on nav buttons
+    [navBuilder, navExplorer, navDeploy, navSettings].forEach(btn => {
+      btn.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-all";
+    });
+
+    // Hide all contents
+    tabChatContent.classList.add('hidden');
+    tabCodeContent.classList.add('hidden');
+    tabDeployContent.classList.add('hidden');
+    tabSettingsContent.classList.add('hidden');
+
+    // Sync top-right tab buttons
+    tabChatBtn.className = "px-2.5 py-1 rounded hover:bg-slate-800 text-xs font-semibold text-slate-400 hover:text-white";
+    tabCodeBtn.className = "px-2.5 py-1 rounded hover:bg-slate-800 text-xs font-semibold text-slate-400 hover:text-white";
+
+    if (tabName === 'chat') {
+      navBuilder.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium transition-all";
+      tabChatContent.classList.remove('hidden');
+      tabChatBtn.className = "px-2.5 py-1 rounded bg-slate-800 text-xs font-semibold text-white border border-slate-700";
+      panelTitle.textContent = "AI Builder Chat";
+    } else if (tabName === 'code') {
+      navExplorer.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium transition-all";
+      tabCodeContent.classList.remove('hidden');
+      tabCodeBtn.className = "px-2.5 py-1 rounded bg-slate-800 text-xs font-semibold text-white border border-slate-700";
+      panelTitle.textContent = "File Explorer";
+      renderFileList();
+      renderCodeEditor();
+    } else if (tabName === 'deploy') {
+      navDeploy.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium transition-all";
+      tabDeployContent.classList.remove('hidden');
+      panelTitle.textContent = "Deployments";
+    } else if (tabName === 'settings') {
+      navSettings.className = "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium transition-all";
+      tabSettingsContent.classList.remove('hidden');
+      panelTitle.textContent = "Settings";
+    }
+  }
+
+  // Add Chat Message
+  function addChatMessage(sender, text, summary = null) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `flex gap-3 max-w-[85%] ${sender === 'user' ? 'ml-auto flex-row-reverse' : ''}`;
+    
+    const avatar = sender === 'user' 
+      ? `<img src="${state.settings.profileImg}" class="w-8 h-8 rounded-full object-cover border border-violet-500/50 shrink-0">`
+      : `<div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shrink-0"><i data-lucide="bot" class="w-4 h-4 text-white"></i></div>`;
+
+    const bubbleClass = sender === 'user' ? 'chat-bubble-user text-white' : 'chat-bubble-bot text-slate-200';
+    
+    let summaryHtml = '';
+    if (summary) {
+      summaryHtml = `
+        <div class="mt-3 pt-3 border-t border-slate-700/50 text-xs text-slate-400 space-y-1">
+          <p class="font-semibold text-slate-300">Generation Details:</p>
+          <p>${summary}</p>
+        </div>
+      `;
+    }
+
+    msgDiv.innerHTML = `
+      ${avatar}
+      <div class="${bubbleClass} rounded-2xl p-3.5 border border-slate-700/50 shadow-lg">
+        <p class="text-sm leading-relaxed whitespace-pre-wrap">${text}</p>
+        ${summaryHtml}
+      </div>
+    `;
+    
+    chatMessages.appendChild(msgDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    lucide.createIcons();
+  }
+
+  // Handle AI Generation
+  async function handleAIGeneration(prompt) {
+    const apiKey = state.settings.apiKeys[state.settings.activeSlot];
+    state.isGenerating = true;
+
+    if (!apiKey || apiKey.trim() === "") {
+      addChatMessage('bot', '🤖 No OpenRouter API Key detected. Activating **Smart Local AI Simulator** to build your request instantly!');
+    } else {
+      addChatMessage('bot', 'Thinking and generating code via OpenRouter... Please wait.');
+    }
+    
+    try {
+      const activeProj = getActiveProject();
+      const result = await window.AppHelpers.generateWebCode(
+        apiKey, 
+        state.settings.model, 
+        prompt, 
+        activeProj.files
+      );
+
+      // Update Project Files
+      if (result.files && result.files.length > 0) {
+        activeProj.files = result.files;
+        renderFileList();
+        renderCodeEditor();
+        updateLivePreview();
+        window.AppHelpers.SoundEffects.playSuccess();
+        addChatMessage('bot', '✨ Website updated successfully!', result.summary);
+      } else {
+        throw new Error('No files returned from AI.');
+      }
+    } catch (error) {
+      console.error(error);
+      window.AppHelpers.SoundEffects.playError();
+      addChatMessage('bot', `❌ Error: ${error.message}`);
+    } finally {
+      state.isGenerating = false;
+    }
+  }
+
+  // Event Listeners
+  
+  // Project Selector Change
+  projectSelector.addEventListener('change', (e) => {
+    window.AppHelpers.SoundEffects.playClick();
+    state.activeProjectId = e.target.value;
+    state.activeFilePath = 'index.html';
+    renderFileList();
+    renderCodeEditor();
+    updateLivePreview();
+    
+    const activeProj = getActiveProject();
+    summaryProjectName.textContent = activeProj.name;
+    summaryProjectFiles.textContent = `${activeProj.files.length} files`;
+  });
+
+  // Reset Project
+  btnResetProject.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    const activeProj = getActiveProject();
+    if (!activeProj) return;
+
+    if (confirm(`Are you sure you want to reset "${activeProj.name}" to its original template? All custom changes will be lost.`)) {
+      let originalFiles = [];
+      if (activeProj.id === 'proj-1') {
+        originalFiles = window.AppTemplates.portfolio.files;
+      } else if (activeProj.id === 'proj-2') {
+        originalFiles = window.AppTemplates.saas.files;
+      } else {
+        originalFiles = window.AppTemplates.blank.files;
+      }
+      
+      activeProj.files = JSON.parse(JSON.stringify(originalFiles));
+      state.activeFilePath = 'index.html';
+      renderFileList();
+      renderCodeEditor();
+      updateLivePreview();
+      window.AppHelpers.SoundEffects.playSuccess();
+    }
+  });
+
+  // New Project Modal Toggle
+  btnNewProject.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    newProjectModal.classList.remove('hidden');
+  });
+
+  btnCloseModal.addEventListener('click', () => {
+    newProjectModal.classList.add('hidden');
+  });
+
+  btnCancelProject.addEventListener('click', () => {
+    newProjectModal.classList.add('hidden');
+  });
+
+  // Create Project Confirm
+  btnCreateProjectConfirm.addEventListener('click', () => {
+    const name = newProjectNameInput.value.trim() || 'New Project';
+    const templateKey = newProjectTemplateSelect.value;
+    const template = window.AppTemplates[templateKey];
+    
+    const newProj = {
+      id: `proj-${Date.now()}`,
+      name: name,
+      files: JSON.parse(JSON.stringify(template.files)) // Deep copy
+    };
+
+    state.projects.push(newProj);
+    state.activeProjectId = newProj.id;
+    state.activeFilePath = 'index.html';
+    
+    renderProjectSelector();
+    renderFileList();
+    renderCodeEditor();
+    updateLivePreview();
+    
+    newProjectModal.classList.add('hidden');
+    window.AppHelpers.SoundEffects.playSuccess();
+  });
+
+  // Navigation Clicks
+  navBuilder.addEventListener('click', () => { window.AppHelpers.SoundEffects.playClick(); switchTab('chat'); });
+  navExplorer.addEventListener('click', () => { window.AppHelpers.SoundEffects.playClick(); switchTab('code'); });
+  navDeploy.addEventListener('click', () => { window.AppHelpers.SoundEffects.playClick(); switchTab('deploy'); });
+  navSettings.addEventListener('click', () => { window.AppHelpers.SoundEffects.playClick(); switchTab('settings'); });
+  btnSettingsToggle.addEventListener('click', () => { window.AppHelpers.SoundEffects.playClick(); switchTab('settings'); });
+
+  // Tab Clicks
+  tabChatBtn.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    switchTab('chat');
+  });
+
+  tabCodeBtn.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    switchTab('code');
+  });
+
+  // Add File Button
+  btnAddFile.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    const proj = getActiveProject();
+    if (!proj) return;
+
+    const fileName = prompt("Enter new file name (e.g., about.html, style-custom.css, custom.js):");
+    if (!fileName) return;
+
+    const trimmed = fileName.trim();
+    if (trimmed === "") return;
+
+    // Validation
+    if (proj.files.some(f => f.path.toLowerCase() === trimmed.toLowerCase())) {
+      alert("A file with this name already exists!");
+      return;
+    }
+
+    let defaultContent = "";
+    if (trimmed.endsWith('.html')) {
+      defaultContent = `<!DOCTYPE html>\n<html>\n<head>\n  <title>${trimmed}</title>\n</head>\n<body>\n  <h1>${trimmed}</h1>\n</body>\n</html>`;
+    } else if (trimmed.endsWith('.css')) {
+      defaultContent = `/* Custom Styles for ${trimmed} */`;
+    } else if (trimmed.endsWith('.js')) {
+      defaultContent = `// Custom Script for ${trimmed}\nconsole.log('${trimmed} loaded');`;
+    } else {
+      defaultContent = `/* Content for ${trimmed} */`;
+    }
+
+    proj.files.push({
+      path: trimmed,
+      content: defaultContent
+    });
+
+    state.activeFilePath = trimmed;
+    renderFileList();
+    renderCodeEditor();
+    updateLivePreview();
+    window.AppHelpers.SoundEffects.playSuccess();
+  });
+
+  // Chat Form Submit
+  chatForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const prompt = chatInput.value.trim();
+    if (!prompt || state.isGenerating) return;
+
+    window.AppHelpers.SoundEffects.playClick();
+    addChatMessage('user', prompt);
+    chatInput.value = '';
+    
+    handleAIGeneration(prompt);
+  });
+
+  // Quick Prompts
+  document.querySelectorAll('.quick-prompt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const prompt = btn.textContent.replace(/^[🚀🎨📊]\s*/, '');
+      chatInput.value = prompt;
+      chatForm.dispatchEvent(new Event('submit'));
+    });
+  });
+
+  // Code Editor Input Change
+  codeEditor.addEventListener('input', () => {
+    const file = getActiveFile();
+    if (file) {
+      file.content = codeEditor.value;
+      updateLivePreview();
+      
+      // Dynamically update file size badge in explorer
+      const proj = getActiveProject();
+      if (proj) {
+        summaryProjectFiles.textContent = `${proj.files.length} files`;
+      }
+    }
+  });
+
+  // Viewport Toggles
+  btnViewDesktop.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    previewWrapper.style.width = '100%';
+    previewWrapper.style.height = '100%';
+    btnViewDesktop.className = "p-1 rounded bg-slate-800 text-white";
+    btnViewTablet.className = "p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800";
+    btnViewMobile.className = "p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800";
+  });
+
+  btnViewTablet.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    previewWrapper.style.width = '768px';
+    previewWrapper.style.height = '1024px';
+    btnViewTablet.className = "p-1 rounded bg-slate-800 text-white";
+    btnViewDesktop.className = "p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800";
+    btnViewMobile.className = "p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800";
+  });
+
+  btnViewMobile.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    previewWrapper.style.width = '375px';
+    previewWrapper.style.height = '667px';
+    btnViewMobile.className = "p-1 rounded bg-slate-800 text-white";
+    btnViewDesktop.className = "p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800";
+    btnViewTablet.className = "p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800";
+  });
+
+  // Refresh Preview
+  btnRefreshPreview.addEventListener('click', () => {
+    window.AppHelpers.SoundEffects.playClick();
+    updateLivePreview();
+  });
+
+  // Export ZIP
+  btnExportZip.addEventListener('click', async () => {
+    window.AppHelpers.SoundEffects.playClick();
+    const proj = getActiveProject();
+    if (proj) {
+      await window.AppHelpers.exportToZip(proj.name, proj.files);
+      window.AppHelpers.SoundEffects.playSuccess();
+    }
+  });
+
+  // GitHub Deployment
+  btnDeployGithub.addEventListener('click', async () => {
+    window.AppHelpers.SoundEffects.playClick();
+    const token = githubTokenInput.value.trim();
+    const repo = githubRepoInput.value.trim();
+    const customDomain = githubCustomDomainInput.value.trim();
+    const proj = getActiveProject();
+
+    if (!token || !repo) {
+      window.AppHelpers.SoundEffects.playError();
+      alert('Please provide both GitHub Token and Repository Name.');
+      return;
+    }
+
+    // Save settings
+    localStorage.setItem('github_token', token);
+    localStorage.setItem('github_repo', repo);
+    localStorage.setItem('github_custom_domain', customDomain);
+
+    deploymentStatusCard.classList.remove('hidden');
+    deployStatusIcon.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i>';
+    deployStatusTitle.textContent = 'Deploying to GitHub...';
+    deployStatusDesc.textContent = 'Creating repository and uploading files.';
+    lucide.createIcons();
+
+    try {
+      const liveUrl = await window.AppHelpers.deployToGitHub(token, repo, proj.files, customDomain);
+      window.AppHelpers.SoundEffects.playSuccess();
+      deployStatusIcon.innerHTML = '<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>';
+      deployStatusTitle.textContent = 'Deployment Successful!';
+      deployStatusDesc.textContent = 'Your site is now live on GitHub Pages.';
+      deployLiveUrl.href = liveUrl;
+      deployLiveUrl.textContent = liveUrl;
+    } catch (error) {
+      window.AppHelpers.SoundEffects.playError();
+      deployStatusIcon.innerHTML = '<i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>';
+      deployStatusTitle.textContent = 'Deployment Failed';
+      deployStatusDesc.textContent = error.message;
+    }
+    lucide.createIcons();
+  });
+
+  // Settings Input Changes
+  openrouterKeyInput.addEventListener('input', (e) => {
+    const slot = state.settings.activeSlot;
+    state.settings.apiKeys[slot] = e.target.value;
+    localStorage.setItem(`openrouter_key_${slot === 'slot1' ? '1' : slot === 'slot2' ? '2' : '3'}`, e.target.value);
+    updateAPIStatusBadge();
+  });
+
+  openrouterModelSelect.addEventListener('change', (e) => {
+    state.settings.model = e.target.value;
+    localStorage.setItem('openrouter_model', e.target.value);
+  });
+
+  profileNameInput.addEventListener('input', (e) => {
+    state.settings.profileName = e.target.value;
+    localStorage.setItem('profile_name', e.target.value);
+    userProfileName.textContent = e.target.value;
+  });
+
+  profileImgInput.addEventListener('input', (e) => {
+    state.settings.profileImg = e.target.value;
+    localStorage.setItem('profile_img', e.target.value);
+    userProfileImg.src = e.target.value;
+  });
+
+  // API Slot Buttons
+  apiSlotBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.AppHelpers.SoundEffects.playClick();
+      apiSlotBtns.forEach(b => b.className = "api-slot-btn px-3 py-2 rounded-lg border border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold");
+      btn.className = "api-slot-btn px-3 py-2 rounded-lg border border-violet-500 bg-violet-600/10 text-violet-400 text-xs font-semibold";
+      
+      const slot = btn.dataset.slot;
+      state.settings.activeSlot = `slot${slot}`;
+      openrouterKeyInput.value = state.settings.apiKeys[`slot${slot}`];
+      updateAPIStatusBadge();
+    });
+  });
+
+  // Initialize Settings Inputs
+  openrouterKeyInput.value = state.settings.apiKeys.slot1;
+  openrouterModelSelect.value = state.settings.model;
+  githubTokenInput.value = state.settings.githubToken;
+  githubRepoInput.value = state.settings.githubRepo;
+  githubCustomDomainInput.value = state.settings.githubCustomDomain;
+  profileNameInput.value = state.settings.profileName;
+  profileImgInput.value = state.settings.profileImg;
+  userProfileName.textContent = state.settings.profileName;
+  userProfileImg.src = state.settings.profileImg;
+
+  // Initial Render
+  renderProjectSelector();
+  renderFileList();
+  renderCodeEditor();
+  updateLivePreview();
+});
+</script></body>
+</html>
